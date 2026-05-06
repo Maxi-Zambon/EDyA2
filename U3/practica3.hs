@@ -1,10 +1,4 @@
-import Distribution.Simple.Utils (xargs)
-import GHC.Base (TrName(TrNameD))
-import Text.Parsec (Consumed(Consumed))
-import Control.Arrow (ArrowApply(app))
-import Data.Binary.Builder (append, empty)
-import System.Posix.Internals (const_echo)
-import Data.Time.Format.ISO8601 (yearFormat)
+
 {-
 1. El modelo de color RGB es un modelo aditivo que tiene al rojo, verde y azul como colores primarios. Cualquier
 otro color se expresa en terminos de los porcentajes de cada uno estos tres colores que es necesario combinar
@@ -231,6 +225,7 @@ top (ConsS x stack) = x
 parseRPN :: String -> Exp 
 parseRPN string = parseRPNAux (words string) EmptyS 
 
+-- Iba a hacer que se puedan pasar numeros de mas de una cifra en la cuenta pero me dio paja
 parseRPNAux :: [String] -> Stack Exp -> Exp
 parseRPNAux [] stack = top stack
 parseRPNAux (x:xs) stack    | isNumeric (head x) = parseRPNAux xs (push (Lit (read x) ) stack) 
@@ -253,6 +248,32 @@ isNumeric c = elem c ['0'..'9']
 isOperator :: Char -> Bool 
 isOperator c = elem c ['+','-','*','/']
 
+-- b) Defina una funcion evalRPN :: String → Int para evaluar expresiones aritmeticas escritas en RPN. 
+
+evalRPN :: String -> Int
+evalRPN [] = 0
+evalRPN s = eval (parseRPN s)
+
+sevalRPN :: String -> Maybe Int
+sevalRPN [] = Just 0
+sevalRPN s = seval (parseRPN s)
+
+-- 6) b) Defina un evaluador seval :: Exp → Maybe Int para controlar los errores de division por 0. 
+
+seval :: Exp -> Maybe Int
+seval (Lit x) = Just x
+seval (Add x y) = case (seval x, seval y) of
+        (Just r1, Just r2) -> Just (r1 + r2)
+        _                  -> Nothing
+seval (Sub x y ) = case (seval x, seval y) of
+        (Just r1, Just r2) -> Just (r1 - r2)
+        _                  -> Nothing
+seval (Prod x y ) = case (seval x, seval y) of
+        (Just r1, Just r2) -> Just (r1 * r2)
+        _                  -> Nothing
+seval (Div x y) = case (seval x, seval y) of
+        (Just r1, Just r2) -> if r2 == 0 then Nothing else Just (div r1 r2)
+        _                  -> Nothing
 
 
 main :: IO ()
