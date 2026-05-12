@@ -113,3 +113,26 @@ arbol2 = fromList lista2
 --                                                    | coord ejeCorte p > coord ejeCorte p' = Node l p' (eliminarAux p r ((eje + 1) `mod` dimension p)) eje
 --                                                    | otherwise 
 
+--5:  
+
+isRegion :: Punto2d -> Rect -> Bool
+isRegion (P2d (x,y)) (P2d (x1, y1), P2d (x2, y2)) = 
+        let (xMin,xMax) = if x1 <= x2 then (x1,x2) else (x2,x1)
+            (yMin,yMax) = if y1 <= y2 then (y1,y2) else (y2,y1)
+        in  xMin < x && x < xMax && yMin < y && y < yMax
+        
+            
+
+ortogonalSearch :: NdTree Punto2d -> Rect -> [Punto2d]
+ortogonalSearch Empty rect = []
+ortogonalSearch t@(Node l  (P2d (x, y)) r level) rect@(a,b) = ortogonalSearchAux t rect []
+      where 
+        ortogonalSearchAux Empty rect xs = xs
+        ortogonalSearchAux (Node l p r level) rect xs   | pertenece = ortogonalSearchAux l rect (p: (ortogonalSearchAux r rect xs))
+                                                        | coord level p > maxCoord level rect   = ortogonalSearchAux l rect xs
+                                                        | coord level p < minCoord level rect   = ortogonalSearchAux r rect xs 
+                                                        | otherwise                             = ortogonalSearchAux l rect (ortogonalSearch r rect xs)
+
+        pertenece = isRegion p rect
+        maxCoord level rect = max (coord level (fst rect)) (coord level (snd rect))
+        minCoord level rect = min (coord level (fst rect)) (coord level (snd rect))
