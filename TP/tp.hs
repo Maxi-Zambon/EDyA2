@@ -92,47 +92,53 @@ printTree tree = putStr (drawTree tree 0)
 
 
 puntosPrueba :: [Punto2d]
-puntosPrueba = [P2d (2,3), P2d (5,4), P2d (6,4), P2d (7,4) , P2d (9,6), P2d (4,7), P2d (8,1), P2d (7,2)]
+puntosPrueba = [P2d (2,3), P2d (5,4), P2d (6,4), P2d (7,4) , P2d (9,6), P2d (4,7), P2d (8,1), P2d (7,2), P2d (1,1), P2d (2,0), P2d (2,1), P2d (2,2), P2d (2,10)]
             -- (2,3) (4,7) (5,4) (6,4) (7,4) (7,2) (8,1) (9,6)
             --    |         acc            |    m   |      xs      |
 arbolList = fromList puntosPrueba
-lista2 = [P2d (1,1), P2d (2,0), P2d (2,1), P2d (2,2), P2d (2,10) ]
-arbol2 = fromList lista2
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------
 
 --4:
--- eliminar :: (Eq p, Punto p) => p -> NdTree p -> NdTree p
--- eliminar p t = eliminarAux p t 0
---     where eliminarAux p Empty _ = Empty
---           eliminarAux p (Node l p' Empty eje) ejeCorte | coord ejeCorte p < coord ejeCorte p' = Node (eliminarAux p l ((eje + 1) `mod` dimension p)) p' r eje
---                                                        | otherwise 
-
---           eliminarAux p (Node l p' r eje) ejeCorte | coord ejeCorte p < coord ejeCorte p' = Node (eliminarAux p l ((eje + 1) `mod` dimension p)) p' r eje
---                                                    | coord ejeCorte p > coord ejeCorte p' = Node l p' (eliminarAux p r ((eje + 1) `mod` dimension p)) eje
---                                                    | otherwise 
-
+eliminar :: (Eq p, Punto p) => p -> NdTree p -> NdTree p
+eliminar p Empty = Empty
+eliminar p t@(Node l p' r level) 
+    | p == p'                         = eliminarAux t level (dimension p) 
+    | coord level p <= coord level p' = (Node (eliminar p l) p' r level )
+    | otherwise                       = (Node l p' (eliminar p r) level) 
+    where 
+        -- eliminarAux Empty level dim = Empty
+        eliiminarAux (Node Empty p Empty levelAct) = Empty
+        eliminarAux (Node l p Empty eje) ejeCorte dim = let newP = maxIzq l level in Node (eliminar newP l) newP Empty eje 
+        eliminarAux (Node l p r eje) ejeCorte dim  = let newP = minDer r level in Node l newP (eliminar newP r) eje       
+        
+        maxIzq (Node l p Empty levelAct) level pMax = 
+        maxIzq (Node l p r levelAct) level | level == levelAct = maxIzq l
 --5:  
 
-isRegion :: Punto2d -> Rect -> Bool
-isRegion (P2d (x,y)) (P2d (x1, y1), P2d (x2, y2)) = 
+type Rect = (Punto2d, Punto2d) 
+
+
+-- Consideramos que los puntos del borde no pertenecen a la region PREGUNTAR EN CLASE
+inRegion :: Punto2d -> Rect -> Bool
+inRegion (P2d (x,y)) (P2d (x1, y1), P2d (x2, y2)) = 
         let (xMin,xMax) = if x1 <= x2 then (x1,x2) else (x2,x1)
             (yMin,yMax) = if y1 <= y2 then (y1,y2) else (y2,y1)
         in  xMin < x && x < xMax && yMin < y && y < yMax
-        
+        -- si no tenemos la seguridad del orden de los puntos del rect, no zafo de hacer esto o si?
             
 
 ortogonalSearch :: NdTree Punto2d -> Rect -> [Punto2d]
 ortogonalSearch Empty rect = []
-ortogonalSearch t@(Node l  (P2d (x, y)) r level) rect@(a,b) = ortogonalSearchAux t rect []
+ortogonalSearch t rect = ortogonalSearchAux t rect []
       where 
         ortogonalSearchAux Empty rect xs = xs
-        ortogonalSearchAux (Node l p r level) rect xs   | pertenece = ortogonalSearchAux l rect (p: (ortogonalSearchAux r rect xs))
-                                                        | coord level p > maxCoord level rect   = ortogonalSearchAux l rect xs
-                                                        | coord level p < minCoord level rect   = ortogonalSearchAux r rect xs 
-                                                        | otherwise                             = ortogonalSearchAux l rect (ortogonalSearch r rect xs)
+        ortogonalSearchAux (Node l p r level) rect xs   | coord level p >= maxCoord level rect  = ortogonalSearchAux l rect xs
+                                                        | coord level p <= minCoord level rect  = ortogonalSearchAux r rect xs 
+                                                        | inRegion p rect                       = ortogonalSearchAux l rect (p : ortogonalSearchAux r rect xs)
+                                                        | otherwise                             = ortogonalSearchAux l rect (ortogonalSearchAux r rect xs)
 
-        pertenece = isRegion p rect
         maxCoord level rect = max (coord level (fst rect)) (coord level (snd rect))
         minCoord level rect = min (coord level (fst rect)) (coord level (snd rect))
+        -- Esto se podria evitar calcular en cada llamada, pensar como
