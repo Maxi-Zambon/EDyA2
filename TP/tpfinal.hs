@@ -50,11 +50,11 @@ fromList (x:xs) = fromListAux (x:xs) 0 (dimension x)
         fromListAux (x:xs) level dim= let (l1, m ,l2) = maxMediana (mediana (sortOn (coord level) (x:xs))) level   
                                 in Node (fromListAux l1 ((level+1) `mod` dim) dim) m (fromListAux l2 ((level+1) `mod` dim) dim) level
 
-        mediana xs = recorrer xs xs [] 
+        mediana xs = recorrer xs xs [] --liebre y tortuga
         -- Casos base: el puntero rápido llega al final (lista vacía o un elemento)
         recorrer (m:resto) (_:_:rapido) acc = recorrer resto rapido (m:acc)
-        recorrer (m:resto) [_]         acc = (acc, m, resto)      -- longitud impar
-        recorrer (m:resto) []          acc = (acc, m, resto)      -- longitud par
+        recorrer (m:resto) [x] acc = (acc, m, resto)      -- longitud impar
+        recorrer (m:resto) []  acc = (acc, m, resto)      -- longitud par
 
         -- maxMediana ([],m,resto) level  = ([],m,resto)
         maxMediana t@(acc,m,[]) level   = t
@@ -63,9 +63,6 @@ fromList (x:xs) = fromListAux (x:xs) 0 (dimension x)
 
 -- 3: 
 
--- Consideramos que no se insertan puntos repetidos por lo que discriminamos el caso donde el punto ya se encuentra en el mimso
--- Para poder comparar los puntos sin modificar el tipo de la funcion principal, 
--- recurrimos a una funcion auxiliar que compara los puntos componente a componente
 insertar ::(Eq p, Punto p) => p -> NdTree p -> NdTree p
 insertar p t = insertarAux p t 0
     where
@@ -100,21 +97,67 @@ puntosPrueba = [P2d (2,3), P2d (5,4), P2d (6,4), P2d (7,4) , P2d (9,6), P2d (4,7
             --    |         acc            |    m   |      xs      |
 arbolList = fromList puntosPrueba
 
+puntosPrueba3D =
+    [ P3d (2,3,1)
+    , P3d (5,4,2)
+    , P3d (6,4,0)
+    , P3d (7,4,5)
+    , P3d (9,6,3)
+    , P3d (4,7,8)
+    , P3d (8,1,2)
+    , P3d (7,2,9)
+    , P3d (1,1,1)
+    , P3d (2,0,4)
+    , P3d (2,1,7)
+    , P3d (2,2,6)
+    , P3d (2,10,3)
+    , P3d (3,5,8)
+    , P3d (10,2,1)
+    , P3d (0,0,0)
+    , P3d (11,4,7)
+    , P3d (6,8,2)
+    , P3d (5,9,9)
+    , P3d (12,3,4)
+    , P3d (4,4,4)
+    , P3d (8,8,8)
+    , P3d (1,9,2)
+    , P3d (3,7,5)
+    , P3d (6,0,3)
+    , P3d (9,1,6)
+    , P3d (13,2,7)
+    , P3d (14,5,1)
+    , P3d (15,3,9)
+    , P3d (16,6,0)
+    , P3d (17,7,4)
+    , P3d (18,8,2)
+    , P3d (19,9,5)
+    , P3d (20,1,8)
+    , P3d (21,2,6)
+    , P3d (22,4,3)
+    , P3d (23,5,7)
+    , P3d (24,6,1)
+    , P3d (25,7,9)
+    , P3d (26,8,4)
+    ]
+
+arbolList2 = fromList puntosPrueba3D
+
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------
 
---4: 
+--4:
 eliminar :: (Eq p, Punto p) => p -> NdTree p -> NdTree p
 eliminar p Empty = Empty
 eliminar p t@(Node l p' r level) 
-    | p == p'                         = eliminarAux t
+    | p == p'                         = eliminarAux t 
     | coord level p <= coord level p' = Node (eliminar p l) p' r level 
     | otherwise                       = Node l p' (eliminar p r) level 
     where 
         -- eliminarAux Empty level dim = Empty
-        eliminarAux (Node Empty p Empty levelAct)  = Empty --caso hoja, simplemente la elimino.
+        eliminarAux (Node Empty p Empty levelAct) = Empty --caso hoja, simplemente la elimino.
         eliminarAux (Node l@(Node _ p' _ _) p Empty level)  = let newP = maxIzq l level p' in Node (eliminar newP l) newP Empty level 
-        eliminarAux (Node l p r@(Node _ p' _ _) level)  = let newP = minDer r level p' in Node l newP (eliminar newP r) level 
+        eliminarAux (Node l p r@(Node _ p' _ _) level)   = let newP = minDer r level p' in Node l newP (eliminar newP r) level 
 
 
         maxIzq Empty _ pMax = pMax
@@ -132,6 +175,7 @@ eliminar p t@(Node l p' r level)
 
         minP level p1 p2  | coord level p1 < coord level p2 = p1
                           | otherwise = p2
+        
 
 
 --5:  
@@ -139,8 +183,7 @@ eliminar p t@(Node l p' r level)
 type Rect = (Punto2d, Punto2d) 
 
 
--- Consideramos que los puntos del borde no pertenecen a la region y
--- que no podemos asumir que la funcion recibe los puntos en un orden especifico
+-- Consideramos que los puntos del borde no pertenecen a la region PREGUNTAR EN CLASE (no confian en el tero)
 inRegion :: Punto2d -> Rect -> Bool
 inRegion (P2d (x,y)) (P2d (x1, y1), P2d (x2, y2)) = 
         let (xMin,xMax) = if x1 <= x2 then (x1,x2) else (x2,x1)
@@ -162,3 +205,62 @@ ortogonalSearch t rect = ortogonalSearchAux t rect []
         maxCoord level rect = max (coord level (fst rect)) (coord level (snd rect))
         minCoord level rect = min (coord level (fst rect)) (coord level (snd rect))
         -- Esto se podria evitar calcular en cada llamada, pensar como
+
+
+-- ==========================================
+-- SCRIPT DE TESTING ESTRICTO (Fail-Fast)
+-- ==========================================
+
+-- Función auxiliar que corta el programa si algo no coincide
+assertEqual :: (Eq a, Show a) => String -> a -> a -> IO ()
+assertEqual nombreTest obtenido esperado = do
+    putStr $ "Test: " ++ nombreTest ++ "... "
+    if obtenido == esperado
+        then putStrLn "OK ✔️"
+        else error $ "\n\n❌ ERROR FATAL ❌\nFalló en el test: " ++ nombreTest ++ 
+                     "\n  Se esperaba: " ++ show esperado ++ 
+                     "\n  Se obtuvo:   " ++ show obtenido ++ "\n"
+
+main :: IO ()
+main = do
+    putStrLn "========================================"
+    putStrLn "  INICIANDO BATERÍA DE TESTS ESTRICTOS"
+    putStrLn "========================================\n"
+
+    let puntos = [P2d (2,3), P2d (5,4), P2d (9,6), P2d (4,7), P2d (8,1), P2d (7,2)]
+    let arbol = fromList puntos
+
+    -- TEST 1: Distancia (triángulo pitagórico clásico 3-4-5)
+    assertEqual "Distancia euclídea de (0,0) a (3,4)" (dist (P2d (0,0)) (P2d (3,4))) 5.0
+
+    -- TEST 2: Inserción de duplicados
+    -- Como definieron que si p == p' devuelve t, insertar la raíz de nuevo no debería cambiar el árbol
+    assertEqual "Insertar un punto duplicado devuelve el mismo árbol" (insertar (P2d (7,2)) arbol) arbol
+
+    -- TEST 3: Búsqueda Ortogonal
+    let rectBusqueda = (P2d (1,1), P2d (6,6))
+    let encontrados = ortogonalSearch arbol rectBusqueda
+    -- Ordenamos ambas listas con 'sort' para que el assert no falle si el árbol recolectó los puntos en otro orden
+    let esperadosTest3 = sortOn (coord 0) [P2d (2,3), P2d (5,4)]
+    assertEqual "Búsqueda ortogonal en región (1,1)-(6,6)" (sortOn (coord 0) encontrados) esperadosTest3
+
+    -- TEST 4: Búsqueda de un punto fuera de rango
+    let rectVacio = (P2d (10,10), P2d (20,20))
+    assertEqual "Búsqueda ortogonal en región sin puntos" (ortogonalSearch arbol rectVacio) []
+
+    -- TEST 5: Eliminación de una hoja
+    let arbolSinHoja = eliminar (P2d (4,7)) arbol
+    -- Si lo eliminé bien, hacer una búsqueda ortogonal justo en ese punto debería devolver vacío
+    let busquedaPostEliminar = ortogonalSearch arbolSinHoja (P2d (3,6), P2d (5,8))
+    assertEqual "Eliminar hoja (4,7) hace que no se encuentre más" busquedaPostEliminar []
+
+    -- TEST 6: Eliminación de la raíz preserva a los hijos
+    let arbolSinRaiz = eliminar (P2d (7,2)) arbol
+    -- Si elimino la raíz (7,2), el punto (9,6) que estaba a la derecha no debe desaparecer del árbol
+    -- Buscamos en una región que envuelva exclusivamente al (9,6)
+    let busquedaHijoSobreviviente = ortogonalSearch arbolSinRaiz (P2d (8,5), P2d (10,7))
+    assertEqual "Eliminar raíz (7,2) preserva la existencia del hijo (9,6)" busquedaHijoSobreviviente [P2d (9,6)]
+
+    putStrLn "\n========================================"
+    putStrLn " 🎉 TODOS LOS TESTS PASARON CON ÉXITO 🎉"
+    putStrLn "========================================"
